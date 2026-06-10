@@ -15,25 +15,24 @@ const Config = struct {
         const file_size = (try file.stat(io)).size;
         const buffer = try allocator.alloc(u8, file_size);
         _ = try file.readPositionalAll(io, buffer, 0);
-        var iterator = std.mem.splitScalar(u8, buffer, '\n');
 
+        return Config.parse(buffer);
+    }
+
+    // pub fn write(self: Config, allocator: Allocator, io: Io, path: []const u8) !void {}
+
+    pub fn parse(buffer: []const u8) !Config {
         var config: Config = .{};
+        var iterator = std.mem.splitScalar(u8, buffer, '\n');
 
         while (iterator.next()) |raw_line| {
             const line = std.mem.trim(u8, raw_line, &std.ascii.whitespace);
             if (line.len == 0 or line[0] == '#' or line[0] == ';') continue;
 
-            inline for (std.meta.fields(@This())) |field| {
+            const fields = @typeInfo(@This()).@"struct".fields;
+            inline for (fields) |field| {
                 if (std.mem.startsWith(u8, line, field.name)) {
-                    const idx = std.mem.indexOfScalar(u8, line, '=') orelse unreachable;
-                    const value = std.mem.trim(u8, line[idx + 1 ..], &std.ascii.whitespace);
-
-                    switch (field.type) {
-                        bool => @field(config, field.name) = std.mem.eql(u8, value, "true"),
-                        u1 => @field(config, field.name) = try std.fmt.parseInt(u1, value, 2),
-                        else => unreachable,
-                    }
-
+                    try config.setField(line, field);
                     break;
                 }
             }
@@ -42,8 +41,16 @@ const Config = struct {
         return config;
     }
 
-    // pub fn write(self: Config, allocator: Allocator, io: Io, path: []const u8) !void {}
+    pub fn setField(self: *Config, line: []const u8, field: std.builtin.Type.StructField) !void {
+        const idx = std.mem.indexOfScalar(u8, line, '=') orelse unreachable;
+        const value = std.mem.trim(u8, line[idx + 1 ..], &std.ascii.whitespace);
 
+        switch (field.type) {
+            bool => @field(self, field.name) = std.mem.eql(u8, value, "true"),
+            u1 => @field(self, field.name) = try std.fmt.parseInt(u1, value, 2),
+            else => unreachable,
+        }
+    }
 };
 
 const Repository = struct {
