@@ -1,3 +1,3 @@
 # ~~G̶~~Jit
 
-git implementation in zig.
+git compatible version control system in zig.
