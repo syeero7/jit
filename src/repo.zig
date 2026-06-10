@@ -19,7 +19,23 @@ const Config = struct {
         return Config.parse(buffer);
     }
 
-    // pub fn write(self: Config, allocator: Allocator, io: Io, path: []const u8) !void {}
+    pub fn write(self: Config, io: Io, path: []const u8) !void {
+        const file = try Io.Dir.cwd().createFile(io, path, .{ .truncate = true });
+        defer file.close(io);
+
+        var buffer: [1024]u8 = undefined;
+        var file_writer = file.writer(io, &buffer);
+        const writer = &file_writer.interface;
+
+        _ = try writer.write("[core]\n");
+        const fields = @typeInfo(@This()).@"struct".fields;
+        inline for (fields) |field| {
+            const value = @field(self, field.name);
+            try writer.print("{s} = {any}\n", .{ field.name, value });
+        }
+
+        try writer.flush();
+    }
 
     pub fn parse(buffer: []const u8) !Config {
         var config: Config = .{};
@@ -71,4 +87,24 @@ test "parse git config" {
 
     try std.testing.expect(cfg.repositoryformatversion == 0);
     try std.testing.expect(cfg.bare == false);
+}
+
+test "serialize git config" {
+    const io = std.testing.io;
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+    const tmp_cfg: Config = .{
+        .bare = false,
+        .filemode = false,
+        .repositoryformatversion = 0,
+    };
+
+    try tmp_cfg.write(io, ".tmp_files/config");
+    const cfg = try Config.read(allocator, io, ".tmp_files/config");
+
+    try std.testing.expect(cfg.repositoryformatversion == tmp_cfg.repositoryformatversion);
+    try std.testing.expect(cfg.filemode == tmp_cfg.filemode);
+    try std.testing.expect(cfg.bare == tmp_cfg.bare);
 }
