@@ -129,7 +129,31 @@ pub fn create(allocator: Allocator, io: Io, path: []const u8) !Repository {
 
     return repo;
 }
-// pub fn retrieve(allocator: Allocator, io: Io, path: []const u8) !Repository {}
+
+pub fn retrieve(allocator: Allocator, io: Io) !Repository {
+    var path = try Io.Dir.cwd().realPathFileAlloc(io, ".", allocator);
+
+    while (true) {
+        const gitdir = try std.fs.path.join(allocator, &[_][]const u8{ path, ".git" });
+        Io.Dir.accessAbsolute(io, gitdir, .{}) catch |err| switch (err) {
+            error.FileNotFound => {
+                if (std.fs.path.dirname(path)) |parent| {
+                    const tmp_path = try allocator.dupeSentinel(u8, parent, 0);
+                    path = tmp_path;
+                    continue;
+                } else return error.GitDirNotFound;
+            },
+            else => return err,
+        };
+
+        break;
+    }
+
+    var repo = try Repository.init(allocator, path);
+    const config_path = try std.fs.path.join(allocator, &[_][]const u8{ repo.gitdir, "config" });
+    repo.config = try Config.read(allocator, io, config_path);
+    return repo;
+}
 
 fn createPath(allocator: Allocator, io: Io, path: []const []const u8) !void {
     const dir_path = try std.fs.path.join(allocator, path);
@@ -175,4 +199,16 @@ test "create git repo" {
 
     const allocator = arena.allocator();
     _ = try create(allocator, io, "test_git/");
+}
+
+test "retrieve git repo" {
+    const io = std.testing.io;
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+    const repo = try retrieve(allocator, io);
+
+    try std.testing.expectEqualStrings(repo.worktree, std.fs.path.dirname(repo.gitdir).?);
+    try std.testing.expect(repo.config.bare == false);
 }
