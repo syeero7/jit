@@ -72,10 +72,69 @@ const Config = struct {
 const Repository = struct {
     worktree: []const u8 = undefined,
     gitdir: []const u8 = undefined,
-    config: *Config = undefined,
+    config: Config = undefined,
+
+    pub fn init(allocator: Allocator, path: []const u8) !Repository {
+        return .{
+            .worktree = path,
+            .gitdir = try std.fs.path.join(allocator, &[_][]const u8{ path, ".git" }),
+            .config = Config{
+                .bare = false,
+                .filemode = false,
+                .repositoryformatversion = 0,
+            },
+        };
+    }
 };
 
-// pub fn create(allocator: Allocator) !void {}
+pub fn create(allocator: Allocator, io: Io, path: []const u8) !Repository {
+    var repo = try Repository.init(allocator, path);
+    const cwd = Io.Dir.cwd();
+
+    var worktree_exists = true;
+    cwd.access(io, repo.worktree, .{}) catch |err| {
+        worktree_exists = false;
+
+        switch (err) {
+            error.FileNotFound => try cwd.createDirPath(io, repo.worktree),
+            else => return err,
+        }
+    };
+
+    if (worktree_exists) {
+        const gitdir = try cwd.openDir(io, repo.gitdir, .{ .iterate = true });
+        defer gitdir.close(io);
+
+        var iterator = gitdir.iterate();
+        if (try iterator.next(io) != null) return error.NotEmpty;
+    }
+
+    try createPath(allocator, io, &[_][]const u8{ repo.gitdir, "branches" });
+    try createPath(allocator, io, &[_][]const u8{ repo.gitdir, "objects" });
+    try createPath(allocator, io, &[_][]const u8{ repo.gitdir, "refs", "heads" });
+    try createPath(allocator, io, &[_][]const u8{ repo.gitdir, "refs", "tags" });
+
+    const head_path = try std.fs.path.join(allocator, &[_][]const u8{ repo.gitdir, "HEAD" });
+    const file = try cwd.createFile(io, head_path, .{});
+    defer file.close(io);
+
+    var buffer: [1024]u8 = undefined;
+    var file_writer = file.writer(io, &buffer);
+    const writer = &file_writer.interface;
+    _ = try writer.write("ref: refs/heads/main\n"); // TODO: get default branch name from .gitconfig
+    try writer.flush();
+
+    const config_path = try std.fs.path.join(allocator, &[_][]const u8{ repo.gitdir, "config" });
+    try repo.config.write(io, config_path);
+
+    return repo;
+}
+// pub fn retrieve(allocator: Allocator, io: Io, path: []const u8) !Repository {}
+
+fn createPath(allocator: Allocator, io: Io, path: []const []const u8) !void {
+    const dir_path = try std.fs.path.join(allocator, path);
+    try Io.Dir.cwd().createDirPath(io, dir_path);
+}
 
 test "parse git config" {
     const io = std.testing.io;
@@ -107,4 +166,13 @@ test "serialize git config" {
     try std.testing.expect(cfg.repositoryformatversion == tmp_cfg.repositoryformatversion);
     try std.testing.expect(cfg.filemode == tmp_cfg.filemode);
     try std.testing.expect(cfg.bare == tmp_cfg.bare);
+}
+
+test "create git repo" {
+    const io = std.testing.io;
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+    _ = try create(allocator, io, "test_git/");
 }
