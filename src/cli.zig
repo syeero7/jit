@@ -3,7 +3,7 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
-pub const Error = error{
+const Error = error{
     NoArgs,
     MissingRequiredArgs,
     UnkownCommand,
@@ -11,11 +11,18 @@ pub const Error = error{
     WriteFailed,
 };
 
+const OutputStatus = enum { Ok, Error };
+
+pub const Output = struct {
+    status: OutputStatus = undefined,
+    msg: []u8 = undefined,
+};
+
 pub const Args = []const []const u8;
 
 pub const Command = struct {
     name: []const u8,
-    func: *const fn (Allocator, Io, *Io.Writer, Args) Error!void,
+    func: *const fn (Allocator, Io, Args) Allocator.Error!Output,
 };
 
 pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command) !void {
@@ -25,9 +32,16 @@ pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command
         if (std.mem.eql(u8, cmd.name, args[1])) break cmd;
     } else return Error.UnkownCommand;
 
-    var buffer: [1024]u8 = undefined;
-    var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
-    const stdout = &stdout_writer.interface;
+    const output = try cmd.func(allocator, io, args[1..]);
+    const file_descriptor = switch (output.status) {
+        .Ok => Io.File.stdout(),
+        .Error => Io.File.stderr(),
+    };
 
-    cmd.func(allocator, io, stdout, args[1..]) catch {};
+    var buffer: [1024]u8 = undefined;
+    var writer = file_descriptor.writer(io, &buffer);
+    const w = &writer.interface;
+
+    _ = try w.write(output.msg);
+    try w.flush();
 }
