@@ -8,13 +8,14 @@ pub const Error = error{
     MissingRequiredArgs,
     UnkownCommand,
     CommandFailed,
+    WriteFailed,
 };
 
 pub const Args = []const []const u8;
 
 pub const Command = struct {
     name: []const u8,
-    func: *const fn (Allocator, *Io.Writer, Args) Error!void,
+    func: *const fn (Allocator, Io, *Io.Writer, Args) Error!void,
 };
 
 pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command) !void {
@@ -28,5 +29,5 @@ pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command
     var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
     const stdout = &stdout_writer.interface;
 
-    try cmd.func(allocator, stdout, args[1..]);
+    cmd.func(allocator, io, stdout, args[1..]) catch {};
 }
