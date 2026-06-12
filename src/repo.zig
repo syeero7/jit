@@ -3,6 +3,11 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
+pub const Error = error{
+    RepositoryNotEmpty,
+    GitDirNotFound,
+};
+
 const Config = struct {
     repositoryformatversion: u1 = undefined,
     filemode: bool = undefined,
@@ -101,12 +106,17 @@ pub fn create(allocator: Allocator, io: Io, path: []const u8) !Repository {
         }
     };
 
-    if (worktree_exists) {
-        const gitdir = try cwd.openDir(io, repo.gitdir, .{ .iterate = true });
-        defer gitdir.close(io);
+    gitdir_check: {
+        if (!worktree_exists) break :gitdir_check;
 
+        const gitdir = cwd.openDir(io, repo.gitdir, .{ .iterate = true }) catch |err| switch (err) {
+            error.FileNotFound => break :gitdir_check,
+            else => return err,
+        };
+
+        defer gitdir.close(io);
         var iterator = gitdir.iterate();
-        if (try iterator.next(io) != null) return error.NotEmpty;
+        if (try iterator.next(io) != null) return Error.RepositoryNotEmpty;
     }
 
     try createPath(allocator, io, &[_][]const u8{ repo.gitdir, "branches" });
@@ -141,7 +151,7 @@ pub fn retrieve(allocator: Allocator, io: Io) !Repository {
                     const tmp_path = try allocator.dupeSentinel(u8, parent, 0);
                     path = tmp_path;
                     continue;
-                } else return error.GitDirNotFound;
+                } else return Error.GitDirNotFound;
             },
             else => return err,
         };
