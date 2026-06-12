@@ -3,7 +3,7 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
-pub const Error = error{
+const Error = error{
     RepositoryNotEmpty,
     GitDirNotFound,
 };
