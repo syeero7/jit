@@ -24,3 +24,19 @@ pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cl
     output.msg = try print(allocator, "Initialized empty Git repository in {s}\n", .{repo.gitdir});
     return output;
 }
+
+test "init command" {
+    const io = std.testing.io;
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+    const args = [_][]const u8{ "init", "/tmp/test_git" };
+    std.Io.Dir.deleteDirAbsolute(io, args[1]) catch {};
+
+    var output = try init(allocator, io, &args);
+    std.testing.expect(output.status == .Ok);
+
+    output = try init(allocator, io, &args);
+    std.testing.expect(output.status == .Error);
+}
