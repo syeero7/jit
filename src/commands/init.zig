@@ -1,7 +1,8 @@
 const std = @import("std");
+const libs = @import("libs");
 
-const cli = @import("../cli.zig");
-const repository = @import("../repo.zig");
+const cli = libs.cli;
+const repository = libs.repo;
 
 const Allocator = std.mem.Allocator;
 const print = std.fmt.allocPrint;
