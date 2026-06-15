@@ -1,8 +1,7 @@
 const std = @import("std");
-const libs = @import("libs");
 
-const cli = libs.cli;
-const repository = libs.repo;
+const cli = @import("../libs/cli.zig");
+const repository = @import("../libs/repo.zig");
 
 const Allocator = std.mem.Allocator;
 const print = std.fmt.allocPrint;
@@ -30,13 +29,13 @@ test "init command" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const allocator = arena.allocator();
-    const args = [_][]const u8{ "init", "/tmp/test_git" };
-    std.Io.Dir.deleteDirAbsolute(io, args[1]) catch {};
+    const args = [_][]const u8{ "init", ".tmp_files/init_cmd" };
+    try std.Io.Dir.cwd().deleteTree(io, args[1]);
 
+    const allocator = arena.allocator();
     var output = try init(allocator, io, &args);
-    std.testing.expect(output.status == .Ok);
+    try std.testing.expect(output.status == .Ok);
 
     output = try init(allocator, io, &args);
-    std.testing.expect(output.status == .Error);
+    try std.testing.expect(output.status == .Error);
 }

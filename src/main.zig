@@ -1,9 +1,7 @@
 const std = @import("std");
 
-const libs = @import("libs");
-const cmds = @import("commands");
-
-const cli = libs.cli;
+const cli = @import("libs/cli.zig");
+const cmd_init = @import("commands/init.zig");
 
 pub fn main(init: std.process.Init) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -15,9 +13,13 @@ pub fn main(init: std.process.Init) !void {
     const commands = [_]cli.Command{
         cli.Command{
             .name = "init",
-            .func = &cmds.init,
+            .func = &cmd_init.init,
         },
     };
 
     try cli.start(allocator, init.io, args, &commands);
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }
