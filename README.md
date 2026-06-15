@@ -21,5 +21,5 @@ zig build
 Run tests
 
 ```bash
-zig build test
+zig build test --summary all
 ```
