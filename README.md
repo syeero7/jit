@@ -14,8 +14,12 @@ cd jit
 
 Build the compiled binary
 
-`zig build`
+```bash
+zig build
+```
 
 Run tests
 
-`zig build test`
+```bash
+zig build test
+```
