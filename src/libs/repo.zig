@@ -74,7 +74,7 @@ const Config = struct {
     }
 };
 
-const Repository = struct {
+pub const Repository = struct {
     worktree: []const u8 = undefined,
     gitdir: []const u8 = undefined,
     config: Config = undefined,
