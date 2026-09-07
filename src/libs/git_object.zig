@@ -45,29 +45,19 @@ pub const GitObject = struct {
     kind: GitObjKind = undefined,
     data: GitObjData = undefined,
 
-    pub fn init(kind: GitObjKind, data: []const u8) GitObject {
-        return .{ .kind = kind }.parse(data);
+    pub fn init(kind: GitObjKind, data: []const u8) !GitObject {
+        var obj = GitObject{ .kind = kind };
+        try obj.parse(data);
+        return obj;
     }
 
-    pub fn parse(self: GitObject, data: []const u8) GitObject {
-        switch (self.kind) {
-            .Commit => {
-                self.data.Commit = data;
-                return self;
-            },
-            .Tree => {
-                self.data.Tree = data;
-                return self;
-            },
-            .Blob => {
-                self.data.Blob = data;
-                return self;
-            },
-            .Tag => {
-                self.data.Tag = data;
-                return self;
-            },
-        }
+    pub fn parse(self: *GitObject, data: []const u8) !void {
+        self.data = switch (self.kind) {
+            .Commit => .{ .Commit = data },
+            .Tree => .{ .Tree = data },
+            .Blob => .{ .Blob = data },
+            .Tag => .{ .Tag = data },
+        };
     }
 
     pub fn serialize(self: GitObject) ![]const u8 {
@@ -165,6 +155,8 @@ test "read hash" {
     const io = testing.io;
 
     const repo = try repository.retrieve(gpa, io);
-    const k = try read(gpa, io, repo, "03c219041af8ef82422e94a32a787e52bb4acbdc");
-    std.debug.print("{any}", .{k});
+    const hardcoded_hash = "4d3cfdb7c41d562855f765c3e1c732757de23768";
+    const obj = try read(gpa, io, repo, hardcoded_hash);
+
+    try testing.expectEqual(@TypeOf(obj), GitObject);
 }
