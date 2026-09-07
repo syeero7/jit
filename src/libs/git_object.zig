@@ -26,10 +26,10 @@ const GitObjKind = enum {
 
     pub fn toString(self: GitObjKind) []const u8 {
         switch (self) {
-            .Commit => return []const u8{"commit"},
-            .Tree => return []const u8{"tree"},
-            .Blob => return []const u8{"blob"},
-            .Tag => return []const u8{"tag"},
+            .Commit => return [_]u8{"commit"},
+            .Tree => return [_]u8{"tree"},
+            .Blob => return [_]u8{"blob"},
+            .Tag => return [_]u8{"tag"},
         }
     }
 };
