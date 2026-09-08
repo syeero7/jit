@@ -147,28 +147,18 @@ pub fn write(alloc: Allocator, io: Io, obj: GitObject, repo: ?Repository) ![]con
     return hash;
 }
 
-test "read hash" {
+test "write and read git objects" {
     var arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
-    const gpa = arena.allocator();
+    const alloc = arena.allocator();
     const io = testing.io;
 
-    const repo = try repository.retrieve(gpa, io);
-    const hardcoded_hash = "4d3cfdb7c41d562855f765c3e1c732757de23768";
-    const obj = try read(gpa, io, repo, hardcoded_hash);
-
-    try testing.expectEqual(@TypeOf(obj), GitObject);
-}
-
-test "write object" {
-    var arena = std.heap.ArenaAllocator.init(testing.allocator);
-    defer arena.deinit();
-    const gpa = arena.allocator();
-    const io = testing.io;
-
-    const repo = try repository.Repository.init(gpa, "/tmp/jit_test");
+    const repo = try repository.Repository.init(alloc, "/tmp/jit_test");
     const obj = try GitObject.init(.Tag, "v0.0.1");
-    const hash = try write(gpa, io, obj, repo);
+    const hash = try write(alloc, io, obj, repo);
+    const obj2 = try read(alloc, io, repo, hash);
 
     try testing.expectEqual(hash.len, 40);
+    try testing.expectEqual(@TypeOf(obj2), GitObject);
+    try testing.expectEqualDeep(obj, obj2);
 }
