@@ -29,7 +29,7 @@ test "init command" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const args = [_][]const u8{ "init", ".tmp_files/init_cmd" };
+    const args = [_][]const u8{ "init", "/tmp/.jit_test/init_cmd" };
     try std.Io.Dir.cwd().deleteTree(io, args[1]);
 
     const allocator = arena.allocator();

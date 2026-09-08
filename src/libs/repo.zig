@@ -194,8 +194,8 @@ test "serialize git config" {
         .repositoryformatversion = 0,
     };
 
-    try tmp_cfg.write(io, ".tmp_files/config");
-    const cfg = try Config.read(allocator, io, ".tmp_files/config");
+    try tmp_cfg.write(io, "/tmp/.jit_test/config");
+    const cfg = try Config.read(allocator, io, "/tmp/.jit_test/config");
 
     try std.testing.expect(cfg.repositoryformatversion == tmp_cfg.repositoryformatversion);
     try std.testing.expect(cfg.filemode == tmp_cfg.filemode);
@@ -210,7 +210,7 @@ test "create git repo" {
     defer arena.deinit();
 
     const allocator = arena.allocator();
-    _ = try create(allocator, io, "test_git/");
+    _ = try create(allocator, io, "/tmp/.jit_test/");
 }
 
 test "retrieve git repo" {

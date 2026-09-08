@@ -153,7 +153,7 @@ test "write and read git objects" {
     const alloc = arena.allocator();
     const io = testing.io;
 
-    const repo = try repository.Repository.init(alloc, "/tmp/jit_test");
+    const repo = try repository.Repository.init(alloc, "/tmp/.jit_test/rw_objects");
     const obj = try GitObject.init(.Tag, "v0.0.1");
     const hash = try write(alloc, io, obj, repo);
     const obj2 = try read(alloc, io, repo, hash);
