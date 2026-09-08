@@ -42,6 +42,6 @@ pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command
     var writer = file_descriptor.writer(io, &buffer);
     const w = &writer.interface;
 
-    _ = try w.write(output.msg);
+    try w.writeAll(output.msg);
     try w.flush();
 }
