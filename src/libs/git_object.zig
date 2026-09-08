@@ -115,10 +115,10 @@ pub fn write(alloc: Allocator, io: Io, obj: GitObject, repo: ?Repository) ![]con
     const result = try std.mem.concat(alloc, u8, &parts);
 
     var digest: [Sha1.digest_length]u8 = undefined;
-    var hasher = Sha1.init(.{});
     var hex_buf: [(160 / 8) * 2]u8 = undefined;
-    hasher.update(result);
-    hasher.final(&digest);
+    var sha1 = Sha1.init(.{});
+    sha1.update(data);
+    sha1.final(&digest);
 
     const hash = try std.fmt.bufPrint(&hex_buf, "{x}", .{digest});
     if (repo) |r| {
@@ -139,8 +139,8 @@ pub fn write(alloc: Allocator, io: Io, obj: GitObject, repo: ?Repository) ![]con
         var compressor = try flate.Compress.init(writer, &comp_buf, .zlib, .default);
         const comp_writer = &compressor.writer;
 
-        _ = try comp_writer.write(result);
-        try comp_writer.flush();
+        try comp_writer.writeAll(result);
+        try compressor.finish();
         try writer.flush();
     }
 
