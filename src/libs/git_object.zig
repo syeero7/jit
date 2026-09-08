@@ -111,7 +111,7 @@ pub fn read(allocator: Allocator, io: Io, repo: Repository, hash: []const u8) !G
 pub fn write(alloc: Allocator, io: Io, obj: GitObject, repo: ?Repository) ![]const u8 {
     const data = try obj.serialize();
     const length = try std.fmt.allocPrint(alloc, "{d}", .{data.len});
-    const parts = [_][]const u8{ obj.kind.toString(), " ", length, '\x00', data };
+    const parts = [_][]const u8{ obj.kind.toString(), " ", length, "\x00", data };
     const result = try std.mem.concat(alloc, u8, &parts);
 
     var digest: [Sha1.digest_length]u8 = undefined;
@@ -136,11 +136,12 @@ pub fn write(alloc: Allocator, io: Io, obj: GitObject, repo: ?Repository) ![]con
         const writer = &file_writer.interface;
 
         var comp_buf: [flate.max_window_len]u8 = undefined;
-        var compressor = try flate.Compress.init(writer, &comp_buf, .zlib, .{});
+        var compressor = try flate.Compress.init(writer, &comp_buf, .zlib, .default);
         const comp_writer = &compressor.writer;
 
-        try comp_writer.write(result);
+        _ = try comp_writer.write(result);
         try comp_writer.flush();
+        try writer.flush();
     }
 
     return hash;
@@ -157,4 +158,17 @@ test "read hash" {
     const obj = try read(gpa, io, repo, hardcoded_hash);
 
     try testing.expectEqual(@TypeOf(obj), GitObject);
+}
+
+test "write object" {
+    var arena = std.heap.ArenaAllocator.init(testing.allocator);
+    defer arena.deinit();
+    const gpa = arena.allocator();
+    const io = testing.io;
+
+    const repo = try repository.Repository.init(gpa, "/tmp/jit_test");
+    const obj = try GitObject.init(.Tag, "v0.0.1");
+    const hash = try write(gpa, io, obj, repo);
+
+    try testing.expectEqual(hash.len, 40);
 }
