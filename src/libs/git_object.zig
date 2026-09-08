@@ -25,12 +25,12 @@ const GitObjKind = enum {
     Tag,
 
     pub fn toString(self: GitObjKind) []const u8 {
-        switch (self) {
-            .Commit => return [_]u8{"commit"},
-            .Tree => return [_]u8{"tree"},
-            .Blob => return [_]u8{"blob"},
-            .Tag => return [_]u8{"tag"},
-        }
+        return switch (self) {
+            .Commit => "commit",
+            .Tree => "tree",
+            .Blob => "blob",
+            .Tag => "tag",
+        };
     }
 };
 
@@ -61,12 +61,12 @@ pub const GitObject = struct {
     }
 
     pub fn serialize(self: GitObject) ![]const u8 {
-        switch (self.kind) {
-            .Commit => return self.data.Commit,
-            .Tree => return self.data.Tree,
-            .Blob => return self.data.Blob,
-            .Tag => return self.data.Tag,
-        }
+        return switch (self.kind) {
+            .Commit => self.data.Commit,
+            .Tree => self.data.Tree,
+            .Blob => self.data.Blob,
+            .Tag => self.data.Tag,
+        };
     }
 };
 
@@ -95,14 +95,12 @@ pub fn read(allocator: Allocator, io: Io, repo: Repository, hash: []const u8) !G
     if (std.mem.findScalar(u8, output, ' ')) |i| {
         if (std.mem.findScalarPos(u8, output, i, '\x00')) |j| {
             const size = try std.fmt.parseUnsigned(u64, output[i + 1 .. j], 10);
-            if (size == output.len - j - 1) {
-                const obj_kind = output[0..i];
-                const obj_data = output[j + 1 ..];
+            if (size != output.len - j - 1) return Error.MalformedObject;
 
-                if (std.mem.eql(u8, obj_kind, "commit")) return GitObject.init(.Commit, obj_data);
-                if (std.mem.eql(u8, obj_kind, "tree")) return GitObject.init(.Tree, obj_data);
-                if (std.mem.eql(u8, obj_kind, "blob")) return GitObject.init(.Blob, obj_data);
-                if (std.mem.eql(u8, obj_kind, "tag")) return GitObject.init(.Tag, obj_data);
+            const obj_kind = output[0..i];
+            const obj_data = output[j + 1 ..];
+            inline for (std.enums.values(GitObjKind)) |kind| {
+                if (std.mem.eql(u8, obj_kind, kind.toString())) return GitObject.init(kind, obj_data);
             }
         }
     }
