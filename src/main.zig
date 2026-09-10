@@ -2,6 +2,7 @@ const std = @import("std");
 
 const cli = @import("libs/cli.zig");
 const cmd_init = @import("commands/init.zig");
+const cmd_cat_file = @import("commands/cat-file.zig");
 const x = @import("libs/git_object.zig"); // temp import for testing
 
 pub fn main(init: std.process.Init) !void {
@@ -16,6 +17,10 @@ pub fn main(init: std.process.Init) !void {
         cli.Command{
             .name = "init",
             .func = &cmd_init.init,
+        },
+        cli.Command{
+            .name = "cat-file",
+            .func = &cmd_cat_file.catFile,
         },
     };
 

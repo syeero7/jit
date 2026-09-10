@@ -18,7 +18,7 @@ const Error = error{
     MalformedObject,
 };
 
-const GitObjKind = enum {
+pub const GitObjKind = enum {
     Commit,
     Tree,
     Blob,
