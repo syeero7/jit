@@ -26,11 +26,21 @@ pub const Command = struct {
 };
 
 pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command) !void {
-    if (args.len < 2) return Error.NoArgs;
+    const cmd = findCommand(args, commands) catch |err| {
+        const stderr = Io.File.stderr();
+        var buffer: [1024]u8 = undefined;
+        var err_writer = stderr.writer(io, &buffer);
+        const writer = &err_writer.interface;
 
-    const cmd: Command = for (commands) |cmd| {
-        if (std.mem.eql(u8, cmd.name, args[1])) break cmd;
-    } else return Error.UnkownCommand;
+        switch (err) {
+            error.NoArgs => try writer.print("usage: jit <command>\n", .{}),
+            error.UnkownCommand => try writer.print("unknown command: {s}\n", .{args[1]}),
+            else => try writer.print("An unexpected error occurred: {any}\n", .{err}),
+        }
+
+        try writer.flush();
+        return;
+    };
 
     const output = try cmd.func(allocator, io, args[2..]);
     const file_descriptor = switch (output.status) {
@@ -44,4 +54,14 @@ pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command
 
     try w.writeAll(output.msg);
     try w.flush();
+}
+
+fn findCommand(args: Args, commands: []const Command) !Command {
+    if (args.len < 2) return Error.NoArgs;
+
+    for (commands) |cmd| {
+        if (std.mem.eql(u8, cmd.name, args[1])) return cmd;
+    }
+
+    return Error.UnkownCommand;
 }
