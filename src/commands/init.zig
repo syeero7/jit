@@ -3,11 +3,12 @@ const std = @import("std");
 const cli = @import("../libs/cli.zig");
 const repository = @import("../libs/repo.zig");
 
+const testing = std.testing;
 const Allocator = std.mem.Allocator;
 const print = std.fmt.allocPrint;
 
 pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cli.Output {
-    const path = if (args.len >= 2) args[1] else ".";
+    const path = if (args.len >= 1) args[0] else ".";
     var output: cli.Output = .{ .status = .Error };
 
     const repo = repository.create(allocator, io, path) catch |err| {
@@ -25,17 +26,17 @@ pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cl
 }
 
 test "init command" {
-    const io = std.testing.io;
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
+    const alloc = arena.allocator();
+    const io = testing.io;
 
-    const args = [_][]const u8{ "init", "/tmp/.jit_test/init_cmd" };
-    try std.Io.Dir.cwd().deleteTree(io, args[1]);
+    const args = [_][]const u8{"/tmp/.jit_test/init_cmd"};
+    try std.Io.Dir.cwd().deleteTree(io, args[0]);
 
-    const allocator = arena.allocator();
-    var output = try init(allocator, io, &args);
-    try std.testing.expect(output.status == .Ok);
+    var output = try init(alloc, io, &args);
+    try testing.expect(output.status == .Ok);
 
-    output = try init(allocator, io, &args);
-    try std.testing.expect(output.status == .Error);
+    output = try init(alloc, io, &args);
+    try testing.expect(output.status == .Error);
 }

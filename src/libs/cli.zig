@@ -32,7 +32,7 @@ pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command
         if (std.mem.eql(u8, cmd.name, args[1])) break cmd;
     } else return Error.UnkownCommand;
 
-    const output = try cmd.func(allocator, io, args[1..]);
+    const output = try cmd.func(allocator, io, args[2..]);
     const file_descriptor = switch (output.status) {
         .Ok => Io.File.stdout(),
         .Error => Io.File.stderr(),
