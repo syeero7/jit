@@ -9,7 +9,7 @@ const print = std.fmt.allocPrint;
 
 pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cli.Output {
     const path = if (args.len >= 1) args[0] else ".";
-    var output: cli.Output = .{ .status = .Error };
+    var output: cli.Output = .{ .status = .err };
 
     const repo = repository.create(allocator, io, path) catch |err| {
         output.msg = switch (err) {
@@ -20,7 +20,7 @@ pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cl
         return output;
     };
 
-    output.status = .Ok;
+    output.status = .ok;
     output.msg = try print(allocator, "Initialized empty Git repository in {s}\n", .{repo.gitdir});
     return output;
 }
@@ -35,8 +35,8 @@ test "init command" {
     try std.Io.Dir.cwd().deleteTree(io, args[0]);
 
     var output = try init(alloc, io, &args);
-    try testing.expect(output.status == .Ok);
+    try testing.expect(output.status == .ok);
 
     output = try init(alloc, io, &args);
-    try testing.expect(output.status == .Error);
+    try testing.expect(output.status == .err);
 }

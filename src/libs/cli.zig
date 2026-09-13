@@ -11,7 +11,7 @@ const Error = error{
     WriteFailed,
 };
 
-const OutputStatus = enum { Ok, Error };
+const OutputStatus = enum { ok, err };
 
 pub const Output = struct {
     status: OutputStatus = undefined,
@@ -44,8 +44,8 @@ pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command
 
     const output = try cmd.func(allocator, io, args[2..]);
     const file_descriptor = switch (output.status) {
-        .Ok => Io.File.stdout(),
-        .Error => Io.File.stderr(),
+        .ok => Io.File.stdout(),
+        .err => Io.File.stderr(),
     };
 
     var buffer: [1024]u8 = undefined;

@@ -10,7 +10,7 @@ const Allocator = std.mem.Allocator;
 const print = std.fmt.allocPrint;
 
 pub fn catFile(alloc: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cli.Output {
-    var output: cli.Output = .{ .status = .Error };
+    var output: cli.Output = .{ .status = .err };
 
     _ = objk: {
         if (args.len >= 1) {
@@ -56,7 +56,7 @@ pub fn catFile(alloc: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cli
         return output;
     };
 
-    output.status = .Ok;
+    output.status = .ok;
     output.msg = try print(alloc, "{s}\n", .{try obj.serialize()});
     return output;
 }
@@ -70,13 +70,13 @@ test "cat-file command" {
     _ = try init_cmd.init(alloc, io, &[_][]const u8{ "init", "/tmp/.jit_test/cat-file_cmd" });
     var args = [_][]const u8{ "blob", "012f77ae437960213c076c5bdd1003c20e58b0a4" };
     var output = try catFile(alloc, io, &args);
-    try testing.expect(output.status == .Ok);
+    try testing.expect(output.status == .ok);
 
     args[0] = "bob";
     output = try catFile(alloc, io, &args);
-    try testing.expect(output.status == .Error);
+    try testing.expect(output.status == .err);
 
     args[1] = "xyz";
     output = try catFile(alloc, io, &args);
-    try testing.expect(output.status == .Error);
+    try testing.expect(output.status == .err);
 }

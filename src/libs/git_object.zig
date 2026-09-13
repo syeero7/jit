@@ -19,26 +19,21 @@ const Error = error{
 };
 
 pub const GitObjKind = enum {
-    Commit,
-    Tree,
-    Blob,
-    Tag,
+    commit,
+    tree,
+    blob,
+    tag,
 
     pub fn toString(self: GitObjKind) []const u8 {
-        return switch (self) {
-            .Commit => "commit",
-            .Tree => "tree",
-            .Blob => "blob",
-            .Tag => "tag",
-        };
+        return @tagName(self);
     }
 };
 
 const GitObjData = union(GitObjKind) {
-    Commit: []const u8,
-    Tree: []const u8,
-    Blob: []const u8,
-    Tag: []const u8,
+    commit: []const u8,
+    tree: []const u8,
+    blob: []const u8,
+    tag: []const u8,
 };
 
 pub const GitObject = struct {
@@ -53,19 +48,19 @@ pub const GitObject = struct {
 
     pub fn parse(self: *GitObject, data: []const u8) !void {
         self.data = switch (self.kind) {
-            .Commit => .{ .Commit = data },
-            .Tree => .{ .Tree = data },
-            .Blob => .{ .Blob = data },
-            .Tag => .{ .Tag = data },
+            .commit => .{ .commit = data },
+            .tree => .{ .tree = data },
+            .blob => .{ .blob = data },
+            .tag => .{ .tag = data },
         };
     }
 
     pub fn serialize(self: GitObject) ![]const u8 {
         return switch (self.kind) {
-            .Commit => self.data.Commit,
-            .Tree => self.data.Tree,
-            .Blob => self.data.Blob,
-            .Tag => self.data.Tag,
+            .commit => self.data.commit,
+            .tree => self.data.tree,
+            .blob => self.data.blob,
+            .tag => self.data.tag,
         };
     }
 };
@@ -154,7 +149,7 @@ test "write and read git objects" {
     const io = testing.io;
 
     const repo = try repository.Repository.init(alloc, "/tmp/.jit_test/rw_objects");
-    const obj = try GitObject.init(.Tag, "v0.0.1");
+    const obj = try GitObject.init(.tag, "v0.0.1");
     const hash = try write(alloc, io, obj, repo);
     const obj2 = try read(alloc, io, repo, hash);
 
