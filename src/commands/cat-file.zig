@@ -67,7 +67,6 @@ test "cat-file command" {
     const alloc = arena.allocator();
     const io = testing.io;
 
-    _ = try init_cmd.init(alloc, io, &[_][]const u8{ "init", "/tmp/.jit_test/cat-file_cmd" });
     var args = [_][]const u8{ "blob", "012f77ae437960213c076c5bdd1003c20e58b0a4" };
     var output = try catFile(alloc, io, &args);
     try testing.expect(output.status == .ok);
