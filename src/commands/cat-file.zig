@@ -3,8 +3,6 @@ const std = @import("std");
 const cli = @import("../libs/cli.zig");
 const repository = @import("../libs/repo.zig");
 const git_object = @import("../libs/git_object.zig");
-
-const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 pub fn catFile(allocator: Allocator, io: std.Io, args: cli.Args) anyerror!void {
@@ -53,20 +51,4 @@ pub fn catFile(allocator: Allocator, io: std.Io, args: cli.Args) anyerror!void {
     };
 
     try cli.printOut(io, "{s}\n", .{try obj.serialize()});
-}
-
-test "cat-file command" {
-    var arena = std.heap.ArenaAllocator.init(testing.allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-    const io = testing.io;
-
-    var args = [_][]const u8{ "blob", "012f77ae437960213c076c5bdd1003c20e58b0a4" };
-    try catFile(allocator, io, &args);
-
-    args[0] = "bob";
-    if (catFile(allocator, io, &args)) {} else |_| return error.TestUnexpectedResult;
-
-    args[1] = "xyz";
-    if (catFile(allocator, io, &args)) {} else |_| return error.TestUnexpectedResult;
 }

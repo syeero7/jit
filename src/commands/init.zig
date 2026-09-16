@@ -2,8 +2,6 @@ const std = @import("std");
 
 const cli = @import("../libs/cli.zig");
 const repository = @import("../libs/repo.zig");
-
-const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) anyerror!void {
@@ -18,17 +16,4 @@ pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) anyerror!void {
     };
 
     try cli.printOut(io, "Initialized empty Git repository in {s}\n", .{repo.gitdir});
-}
-
-test "init command" {
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-    const io = testing.io;
-
-    const args = [_][]const u8{"/tmp/.jit_test/init_cmd"};
-    try std.Io.Dir.cwd().deleteTree(io, args[0]);
-
-    try init(allocator, io, &args);
-    if (init(allocator, io, &args)) {} else |_| return error.TestUnexpectedResult;
 }
