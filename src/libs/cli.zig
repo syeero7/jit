@@ -3,65 +3,48 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
-const Error = error{
-    NoArgs,
-    MissingRequiredArgs,
-    UnkownCommand,
-    CommandFailed,
-    WriteFailed,
-};
-
-const OutputStatus = enum { ok, err };
-
-pub const Output = struct {
-    status: OutputStatus = undefined,
-    msg: []u8 = undefined,
-};
-
 pub const Args = []const []const u8;
-
 pub const Command = struct {
     name: []const u8,
-    func: *const fn (Allocator, Io, Args) Allocator.Error!Output,
+    func: *const fn (Allocator, Io, Args) anyerror!void,
 };
 
 pub fn start(allocator: Allocator, io: Io, args: Args, commands: []const Command) !void {
     const cmd = findCommand(args, commands) catch |err| {
-        const stderr = Io.File.stderr();
-        var buffer: [1024]u8 = undefined;
-        var err_writer = stderr.writer(io, &buffer);
-        const writer = &err_writer.interface;
-
         switch (err) {
-            error.NoArgs => try writer.print("usage: jit <command>\n", .{}),
-            error.UnkownCommand => try writer.print("unknown command: {s}\n", .{args[1]}),
-            else => try writer.print("An unexpected error occurred: {any}\n", .{err}),
+            error.NoArgs => try printErr(io, "usage: jit <command>\n", .{}),
+            error.UnkownCommand => try printErr(io, "unknown command: {s}\n", .{args[1]}),
         }
 
-        try writer.flush();
-        return;
+        return err;
     };
 
-    const output = try cmd.func(allocator, io, args[2..]);
-    const file_descriptor = switch (output.status) {
-        .ok => Io.File.stdout(),
-        .err => Io.File.stderr(),
-    };
+    try cmd.func(allocator, io, args[2..]);
+}
 
+pub fn print(io: Io, file: Io.File, comptime fmt: []const u8, args: anytype) !void {
     var buffer: [1024]u8 = undefined;
-    var writer = file_descriptor.writer(io, &buffer);
-    const w = &writer.interface;
+    var file_writer = file.writer(io, &buffer);
+    const writer = &file_writer.interface;
 
-    try w.writeAll(output.msg);
-    try w.flush();
+    try writer.print(fmt, args);
+    try writer.flush();
+}
+
+pub fn printOut(io: Io, comptime fmt: []const u8, args: anytype) !void {
+    try print(io, Io.File.stdout(), fmt, args);
+}
+
+pub fn printErr(io: Io, comptime fmt: []const u8, args: anytype) !void {
+    try print(io, Io.File.stderr(), fmt, args);
 }
 
 fn findCommand(args: Args, commands: []const Command) !Command {
-    if (args.len < 2) return Error.NoArgs;
+    if (args.len < 2) return error.NoArgs;
 
     for (commands) |cmd| {
         if (std.mem.eql(u8, cmd.name, args[1])) return cmd;
     }
 
-    return Error.UnkownCommand;
+    return error.UnkownCommand;
 }

@@ -5,38 +5,30 @@ const repository = @import("../libs/repo.zig");
 
 const testing = std.testing;
 const Allocator = std.mem.Allocator;
-const print = std.fmt.allocPrint;
 
-pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) Allocator.Error!cli.Output {
+pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) anyerror!void {
     const path = if (args.len >= 1) args[0] else ".";
-    var output: cli.Output = .{ .status = .err };
-
     const repo = repository.create(allocator, io, path) catch |err| {
-        output.msg = switch (err) {
-            error.RepositoryNotEmpty => try print(allocator, "Repository is not empty\n", .{}),
-            else => try print(allocator, "An unexpected error occurred: {any}\n", .{err}),
-        };
+        switch (err) {
+            error.RepositoryNotEmpty => try cli.printErr(io, "Repository is not empty\n", .{}),
+            else => try cli.printErr(io, "An unexpected error occurred: {any}\n", .{err}),
+        }
 
-        return output;
+        return err;
     };
 
-    output.status = .ok;
-    output.msg = try print(allocator, "Initialized empty Git repository in {s}\n", .{repo.gitdir});
-    return output;
+    try cli.printOut(io, "Initialized empty Git repository in {s}\n", .{repo.gitdir});
 }
 
 test "init command" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const alloc = arena.allocator();
+    const allocator = arena.allocator();
     const io = testing.io;
 
     const args = [_][]const u8{"/tmp/.jit_test/init_cmd"};
     try std.Io.Dir.cwd().deleteTree(io, args[0]);
 
-    var output = try init(alloc, io, &args);
-    try testing.expect(output.status == .ok);
-
-    output = try init(alloc, io, &args);
-    try testing.expect(output.status == .err);
+    try init(allocator, io, &args);
+    if (init(allocator, io, &args)) {} else |_| return error.TestUnexpectedResult;
 }
