@@ -5,7 +5,7 @@ const repository = @import("../libs/repo.zig");
 const git_object = @import("../libs/git_object.zig");
 const Allocator = std.mem.Allocator;
 
-pub fn catFile(allocator: Allocator, io: std.Io, args: cli.Args) anyerror!void {
+pub fn catFile(allocator: Allocator, io: std.Io, args: cli.Args) !void {
     _ = objk: {
         if (args.len >= 1) {
             inline for (std.enums.values(git_object.GitObjKind)) |kind| {

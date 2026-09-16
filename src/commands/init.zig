@@ -4,7 +4,7 @@ const cli = @import("../libs/cli.zig");
 const repository = @import("../libs/repo.zig");
 const Allocator = std.mem.Allocator;
 
-pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) anyerror!void {
+pub fn init(allocator: Allocator, io: std.Io, args: cli.Args) !void {
     const path = if (args.len >= 1) args[0] else ".";
     const repo = repository.create(allocator, io, path) catch |err| {
         switch (err) {
